@@ -14,11 +14,24 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
@@ -45,17 +58,30 @@ class MainActivity : ComponentActivity() {
                     MainState.ErrorOpen -> {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
-                    is MainState.LaunchMedia -> TODO()
+                    is MainState.LaunchMedia -> {
+
+                    }
                 }
             }
         }
 
         setContent {
-            MainScreen({
-                viewModel.openLocalFileBrowser()
-            }, {
-                viewModel.launchMedia(Uri.parse("random string"))
-            })
+            val navController = rememberNavController()
+
+            NavHost(navController, startDestination = "main") {
+                composable("main") {
+                    MainScreen({
+                        viewModel.openLocalFileBrowser()
+                    }, {
+                        //viewModel.launchMedia(Uri.parse("random string"))
+                        navController.navigate("media")
+                    })
+                }
+                composable("media") {
+                    ExoPlayerScreen()
+                }
+            }
+
         }
     }
 
@@ -95,6 +121,26 @@ fun MainScreen(
         }
     }
 
+}
+
+@Composable
+fun ExoPlayerScreen() {
+    val context = LocalContext.current
+    val player = ExoPlayer.Builder(context).build()
+    val playerView = StyledPlayerView(context)
+    val playWhenReady by remember { mutableStateOf(true)}
+    val mp3Url = "https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3"
+    val mediaItem = MediaItem.fromUri(mp3Url)
+
+    player.setMediaItem(mediaItem)
+    playerView.player = player
+    LaunchedEffect(player) {
+        player.prepare()
+        player.playWhenReady = playWhenReady
+    }
+    AndroidView(factory = {
+        playerView
+    })
 }
 
 
