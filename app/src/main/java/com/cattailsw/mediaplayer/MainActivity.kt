@@ -5,7 +5,9 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +61,7 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
                     is MainState.LaunchMedia -> {
+                        val uri = it.uri
 
                     }
                 }
@@ -71,6 +74,17 @@ class MainActivity : ComponentActivity() {
             NavHost(navController, startDestination = "main") {
                 composable("main") {
                     MainScreen({
+
+                        val safLauncher = rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.GetContent(),
+                            onResult = { uri ->
+                                if (uri != null) {
+
+                                }
+                            }
+                        )
+
+
                         viewModel.openLocalFileBrowser()
                     }, {
                         //viewModel.launchMedia(Uri.parse("random string"))
@@ -81,6 +95,7 @@ class MainActivity : ComponentActivity() {
                     ExoPlayerScreen()
                 }
             }
+
 
         }
     }
@@ -124,13 +139,15 @@ fun MainScreen(
 }
 
 @Composable
-fun ExoPlayerScreen() {
+fun ExoPlayerScreen(
+    mediaUri: Uri
+) {
     val context = LocalContext.current
     val player = ExoPlayer.Builder(context).build()
     val playerView = StyledPlayerView(context)
     val playWhenReady by remember { mutableStateOf(true)}
     val mp3Url = "https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3"
-    val mediaItem = MediaItem.fromUri(mp3Url)
+    val mediaItem = MediaItem.fromUri(mediaUri)
 
     player.setMediaItem(mediaItem)
     playerView.player = player

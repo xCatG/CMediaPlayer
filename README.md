@@ -8,3 +8,13 @@ Right now the plan is having two Activities
 - PlayerActivity : Actual player backed by ExoPlayer and handles View intent to open videos
 
 
+# High Level Design
+
+TBD
+
+
+# Work Log
+
+2022-04-11  stuck between state emitted via viewmodel and navigation controller that is created in setContent
+            maybe it's just too much abstraction to have a viewmodel here?
+
