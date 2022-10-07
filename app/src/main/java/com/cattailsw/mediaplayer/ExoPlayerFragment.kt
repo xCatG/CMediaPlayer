@@ -20,19 +20,20 @@ class ExoPlayerFragment : Fragment() {
         fun newInstance() = ExoPlayerFragment()
     }
 
-    private val viewModel: ExoPlayerViewModel by viewModels<ExoPlayerViewModel>()
+    private var binding: FragmentExoPlayerBinding? = null
 
-    private val viewBinding by lazy(LazyThreadSafetyMode.NONE) {
-        FragmentExoPlayerBinding.inflate(layoutInflater)
-    }
+    private val viewModel: ExoPlayerViewModel by viewModels<ExoPlayerViewModel>()
 
     private var player: ExoPlayer? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_exo_player, container, false)
+    ): View {
+        val binding = FragmentExoPlayerBinding.inflate(inflater)
+        this.binding = binding
+
+        return binding.videoView
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
@@ -59,9 +60,14 @@ class ExoPlayerFragment : Fragment() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        binding = null
+    }
+
     private fun initPlayer() {
-        player = ExoPlayer.Builder(requireContext()).build() .also { exoPlayer ->
-            viewBinding.videoView.player = exoPlayer
+        val localPlayer = ExoPlayer.Builder(requireContext()).build() .also { exoPlayer ->
+            checkNotNull(binding).videoView.player = exoPlayer
             val mp3Url = "https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3"
             val mediaItem = MediaItem.fromUri(mp3Url)
             exoPlayer.setMediaItem(mediaItem)
@@ -70,6 +76,10 @@ class ExoPlayerFragment : Fragment() {
 
             exoPlayer.prepare()
         }
+
+        player = localPlayer
+
+        viewModel.setPlayer(localPlayer)
 
     }
     private var playWhenReady = true

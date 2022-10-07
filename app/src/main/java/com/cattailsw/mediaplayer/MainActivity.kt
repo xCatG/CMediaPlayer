@@ -1,14 +1,16 @@
 package com.cattailsw.mediaplayer
 
 import android.content.Intent
+import android.content.Intent.ACTION_VIEW
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Button
@@ -16,41 +18,56 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavController
+import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
+import androidx.navigation.NavDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    val viewModel: MainViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // TODO get intent and check for Uri
+        if (intent.action?.compareTo(Intent.ACTION_VIEW) == 0) {
+            val uri = intent.data
+            Log.d("XXXX", "got intent with data $uri")
+            Log.d("XXXX", "--> intent is ${intent.toString()}")
+        }
+
+        val deepLink: NavDeepLink = NavDeepLink.Builder().setAction(ACTION_VIEW)
+            .setMimeType("video/*")
+            .build()
+
         lifecycleScope.launch {
             viewModel.state.collectLatest {
-                when(it) {
+                when (it) {
                     MainState.Empty -> {
-                    // noop
+                        // noop
                     }
                     is MainState.OpenFile -> {
                         with(Dispatchers.Main) {
@@ -73,30 +90,32 @@ class MainActivity : ComponentActivity() {
 
             NavHost(navController, startDestination = "main") {
                 composable("main") {
-                    MainScreen({
-
-                        val safLauncher = rememberLauncherForActivityResult(
-                            contract = ActivityResultContracts.GetContent(),
-                            onResult = { uri ->
-                                if (uri != null) {
-
-                                }
-                            }
-                        )
-
-
-                        viewModel.openLocalFileBrowser()
-                    }, {
-                        //viewModel.launchMedia(Uri.parse("random string"))
-                        navController.navigate("media")
-                    })
+                    MainScreen(
+                        {
+                            viewModel.openLocalFileBrowser()
+                        }, {
+                            navController.navigate("media")
+                        })
                 }
-                composable("media") {
-                    ExoPlayerScreen()
+                composable(
+                    route = "media",
+                    arguments = listOf(),
+                    deepLinks = listOf(deepLink)
+                ) {
+                    val origIntent:Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)
+                    } else {
+                        it.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
+                    }
+
+                    if (origIntent!=null) {
+                        val dataUri = origIntent.data
+                        ExoPlayerScreen(mediaUri = dataUri)
+                    } else {
+                        ExoPlayerScreen()
+                    }
                 }
             }
-
-
         }
     }
 
@@ -140,30 +159,33 @@ fun MainScreen(
 
 @Composable
 fun ExoPlayerScreen(
-    mediaUri: Uri
+    modifier: Modifier = Modifier,
+    mediaUri: Uri? = null,
 ) {
     val context = LocalContext.current
-    val player = ExoPlayer.Builder(context).build()
-    val playerView = StyledPlayerView(context)
-    val playWhenReady by remember { mutableStateOf(true)}
-    val mp3Url = "https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3"
-    val mediaItem = MediaItem.fromUri(mediaUri)
+    val mp3Url = mediaUri
+        ?: Uri.parse("https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3")
+    val mediaItem = MediaItem.fromUri(mp3Url)
+    val playWhenReady by remember { mutableStateOf(true) }
 
-    player.setMediaItem(mediaItem)
-    playerView.player = player
-    LaunchedEffect(player) {
-        player.prepare()
-        player.playWhenReady = playWhenReady
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(mediaItem)
+            prepare()
+            this.playWhenReady = playWhenReady
+        }
     }
-    AndroidView(factory = {
-        playerView
-    })
-}
 
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
+    Box(modifier = modifier) {
+        DisposableEffect(key1 = Unit, effect = {
+            onDispose { exoPlayer.release() }
+        })
+        AndroidView(factory = {
+            StyledPlayerView(context).apply {
+                this.player = exoPlayer
+            }
+        })
+    }
 }
 
 @Preview(showBackground = true)
