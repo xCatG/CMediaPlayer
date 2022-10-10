@@ -33,9 +33,12 @@ import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.findNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import com.google.android.exoplayer2.ExoPlayer
@@ -63,6 +66,11 @@ class MainActivity : ComponentActivity() {
             .setMimeType("video/*")
             .build()
 
+        val playerNamedNavArgument: NamedNavArgument = navArgument("playerViewArg") {
+            type = NavType.StringType
+            nullable = false
+        }
+
         lifecycleScope.launch {
             viewModel.state.collectLatest {
                 when (it) {
@@ -79,7 +87,6 @@ class MainActivity : ComponentActivity() {
                     }
                     is MainState.LaunchMedia -> {
                         val uri = it.uri
-
                     }
                 }
             }
@@ -98,22 +105,29 @@ class MainActivity : ComponentActivity() {
                         })
                 }
                 composable(
-                    route = "media",
-                    arguments = listOf(),
+                    route = "mediaExternal",
                     deepLinks = listOf(deepLink)
                 ) {
-                    val origIntent:Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)
-                    } else {
-                        it.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
-                    }
+                    val origIntent: Intent? =
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)
+                        } else {
+                            it.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
+                        }
 
-                    if (origIntent!=null) {
+                    if (origIntent != null) {
                         val dataUri = origIntent.data
                         ExoPlayerScreen(mediaUri = dataUri)
                     } else {
                         ExoPlayerScreen()
                     }
+                }
+                composable(
+                    route = "localMedia",
+                    arguments = listOf(playerNamedNavArgument),
+                ) {
+                    println(it.arguments)
+                    ExoPlayerScreen()
                 }
             }
         }
@@ -170,6 +184,7 @@ fun ExoPlayerScreen(
 
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
+
             setMediaItem(mediaItem)
             prepare()
             this.playWhenReady = playWhenReady
