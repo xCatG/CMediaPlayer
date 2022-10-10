@@ -13,6 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+deploymentTargetDropDown.xml
+render.experimental.xml
 
 *.apk
 output.json
