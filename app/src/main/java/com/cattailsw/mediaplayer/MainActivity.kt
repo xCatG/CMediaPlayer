@@ -1,5 +1,6 @@
 package com.cattailsw.mediaplayer
 
+import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.net.Uri
@@ -27,33 +28,69 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NamedNavArgument
-import androidx.navigation.NavController
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.findNavController
 import androidx.navigation.navArgument
-import androidx.navigation.navDeepLink
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+
+class ExoHolderVM() : ViewModel() {
+    var _exoPlayer: ExoPlayer? = null
+
+    val player: Player
+        get() = requireNotNull(_exoPlayer)
+
+    fun initPlayer(context: Context) {
+        val player = ExoPlayer.Builder(context.applicationContext).build()
+
+        _exoPlayer = player
+    }
+
+    fun addItem(uri: Uri) {
+        val mediaItem = MediaItem.fromUri(uri)
+
+        _exoPlayer?.let { player ->
+            player.addMediaItem(mediaItem)
+            player.prepare()
+        }
+    }
+
+    fun releasePlayer() {
+        _exoPlayer?.apply {
+            release()
+        }
+        _exoPlayer = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        releasePlayer()
+    }
+}
+
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private val exoHolder: ExoHolderVM by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        exoHolder.initPlayer(applicationContext)
 
         // TODO get intent and check for Uri
         if (intent.action?.compareTo(Intent.ACTION_VIEW) == 0) {
@@ -116,10 +153,14 @@ class MainActivity : ComponentActivity() {
                         }
 
                     if (origIntent != null) {
-                        val dataUri = origIntent.data
-                        ExoPlayerScreen(mediaUri = dataUri)
+                        val dataUri: Uri = requireNotNull(origIntent.data)
+                        exoHolder.addItem(dataUri)
+                        ExoPlayerScreen(
+                            player = exoHolder.player,
+                            onDisposeAction = exoHolder::releasePlayer
+                        )
                     } else {
-                        ExoPlayerScreen()
+                        //ExoPlayerScreen()
                     }
                 }
                 composable(
@@ -127,7 +168,7 @@ class MainActivity : ComponentActivity() {
                     arguments = listOf(playerNamedNavArgument),
                 ) {
                     println(it.arguments)
-                    ExoPlayerScreen()
+                    //ExoPlayerScreen()
                 }
             }
         }
@@ -173,33 +214,31 @@ fun MainScreen(
 
 @Composable
 fun ExoPlayerScreen(
+    player: Player,
     modifier: Modifier = Modifier,
-    mediaUri: Uri? = null,
+    onDisposeAction: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val mp3Url = mediaUri
-        ?: Uri.parse("https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3")
-    val mediaItem = MediaItem.fromUri(mp3Url)
+
     val playWhenReady by remember { mutableStateOf(true) }
 
-    val exoPlayer = remember {
-        ExoPlayer.Builder(context).build().apply {
+    player.playWhenReady = playWhenReady
 
-            setMediaItem(mediaItem)
-            prepare()
-            this.playWhenReady = playWhenReady
+    Surface {
+        Box(modifier = modifier.fillMaxSize()) {
+            DisposableEffect(key1 = Unit, effect = {
+                // might not want this
+                onDispose {
+                    onDisposeAction()
+                }
+            })
+            AndroidView(factory = {
+                StyledPlayerView(context).apply {
+                    this.player = player
+                }
+            },
+            modifier = Modifier.fillMaxSize())
         }
-    }
-
-    Box(modifier = modifier) {
-        DisposableEffect(key1 = Unit, effect = {
-            onDispose { exoPlayer.release() }
-        })
-        AndroidView(factory = {
-            StyledPlayerView(context).apply {
-                this.player = exoPlayer
-            }
-        })
     }
 }
 
