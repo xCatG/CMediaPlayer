@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +45,7 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import com.google.android.exoplayer2.util.EventLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -57,16 +60,29 @@ class ExoHolderVM() : ViewModel() {
     fun initPlayer(context: Context) {
         val player = ExoPlayer.Builder(context.applicationContext).build()
 
+        player.addAnalyticsListener(EventLogger())
+
         _exoPlayer = player
     }
 
-    fun addItem(uri: Uri) {
-        val mediaItem = MediaItem.fromUri(uri)
+    // we currently only support opening one item
+    fun replaceItem(uri: Uri, mime:String? = null) {
+        val builder = MediaItem.Builder().setUri(uri)
+        if (mime != null) {
+            builder.setMimeType(mime)
+        }
+
+        val mediaItem = builder.build()
 
         _exoPlayer?.let { player ->
+            player.clearMediaItems()
             player.addMediaItem(mediaItem)
             player.prepare()
         }
+    }
+
+    fun pause() {
+        _exoPlayer?.pause()
     }
 
     fun releasePlayer() {
@@ -89,16 +105,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         exoHolder.initPlayer(applicationContext)
-
-        // TODO get intent and check for Uri
-        if (intent.action?.compareTo(Intent.ACTION_VIEW) == 0) {
-            val uri = intent.data
-            Log.d("XXXX", "got intent with data $uri")
-            Log.d("XXXX", "--> intent is ${intent.toString()}")
-        }
-
         val deepLink: NavDeepLink = NavDeepLink.Builder().setAction(ACTION_VIEW)
             .setMimeType("video/*")
             .build()
@@ -122,8 +129,8 @@ class MainActivity : ComponentActivity() {
                     MainState.ErrorOpen -> {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
-                    is MainState.LaunchMedia -> {
-                        val uri = it.uri
+                    else -> {
+                        // nooop
                     }
                 }
             }
@@ -154,9 +161,11 @@ class MainActivity : ComponentActivity() {
 
                     if (origIntent != null) {
                         val dataUri: Uri = requireNotNull(origIntent.data)
-                        exoHolder.addItem(dataUri)
+                        exoHolder.replaceItem(dataUri, "video/mp2t")
                         ExoPlayerScreen(
                             player = exoHolder.player,
+                            // In order to support rotate we probably don't want to call release
+                            // unless we are really exiting?
                             onDisposeAction = exoHolder::releasePlayer
                         )
                     } else {
@@ -165,10 +174,29 @@ class MainActivity : ComponentActivity() {
                 }
                 composable(
                     route = "localMedia",
-                    arguments = listOf(playerNamedNavArgument),
+                    //arguments = listOf(playerNamedNavArgument),
                 ) {
                     println(it.arguments)
-                    //ExoPlayerScreen()
+                    ExoPlayerScreen(
+                        player = exoHolder.player,
+                        // In order to support rotate we probably don't want to call release
+                        // unless we are really exiting?
+                        onDisposeAction = {}
+                    )
+                }
+            }
+
+            val state = viewModel.state.collectAsState()
+
+            when(state.value) {
+                is MainState.LaunchMedia -> {
+                    val uri = (state.value as MainState.LaunchMedia).uri
+                    exoHolder.replaceItem(uri)
+                    Log.d("XXXX", "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
+                    navController.navigate("localMedia")
+                }
+                else -> {
+                    navController.navigate("main")
                 }
             }
         }
@@ -224,20 +252,25 @@ fun ExoPlayerScreen(
 
     player.playWhenReady = playWhenReady
 
-    Surface {
-        Box(modifier = modifier.fillMaxSize()) {
-            DisposableEffect(key1 = Unit, effect = {
-                // might not want this
-                onDispose {
-                    onDisposeAction()
-                }
-            })
-            AndroidView(factory = {
-                StyledPlayerView(context).apply {
-                    this.player = player
-                }
-            },
-            modifier = Modifier.fillMaxSize())
+    CMediaPlayerTheme(darkTheme = true) {
+
+        Surface {
+            Box(modifier = modifier.fillMaxSize()) {
+                DisposableEffect(key1 = Unit, effect = {
+                    // might not want this
+                    onDispose {
+                        onDisposeAction()
+                    }
+                })
+                AndroidView(
+                    factory = {
+                        StyledPlayerView(context).apply {
+                            this.player = player
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
