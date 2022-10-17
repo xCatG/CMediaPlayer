@@ -161,7 +161,7 @@ class MainActivity : ComponentActivity() {
 
                     if (origIntent != null) {
                         val dataUri: Uri = requireNotNull(origIntent.data)
-                        exoHolder.replaceItem(dataUri, "video/mp2t")
+                        exoHolder.replaceItem(dataUri)
                         ExoPlayerScreen(
                             player = exoHolder.player,
                             // In order to support rotate we probably don't want to call release
@@ -174,14 +174,12 @@ class MainActivity : ComponentActivity() {
                 }
                 composable(
                     route = "localMedia",
-                    //arguments = listOf(playerNamedNavArgument),
                 ) {
-                    println(it.arguments)
                     ExoPlayerScreen(
                         player = exoHolder.player,
                         // In order to support rotate we probably don't want to call release
                         // unless we are really exiting?
-                        onDisposeAction = {}
+                        onDisposeAction = exoHolder::releasePlayer
                     )
                 }
             }
@@ -196,7 +194,7 @@ class MainActivity : ComponentActivity() {
                     navController.navigate("localMedia")
                 }
                 else -> {
-                    navController.navigate("main")
+                    // noop as we might be handling a VIEW intent
                 }
             }
         }
@@ -253,7 +251,6 @@ fun ExoPlayerScreen(
     player.playWhenReady = playWhenReady
 
     CMediaPlayerTheme(darkTheme = true) {
-
         Surface {
             Box(modifier = modifier.fillMaxSize()) {
                 DisposableEffect(key1 = Unit, effect = {
