@@ -36,6 +36,7 @@ that is handled in compose; this handler then passes uri to exo holder and then 
 [] Cannot play .ts from Synology DSFiles app
 
     [] might be that exoplayer doesn't support mpeg2-ts over pure http get?
+    [] for some reason, it works on Amazon Fire HD10+?
 
 
 # Work Log
