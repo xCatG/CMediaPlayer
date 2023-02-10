@@ -30,6 +30,9 @@ that is handled in compose; this handler then passes uri to exo holder and then 
         have to always release player
 
 [] Add UI to adjust volume and brightness 
+[] Add error message (from ExoPlayer)
+   [] debug msg ui
+
 
 ## Bugs/Issues
 
