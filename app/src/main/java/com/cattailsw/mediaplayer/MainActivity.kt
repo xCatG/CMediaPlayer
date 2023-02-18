@@ -28,8 +28,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NamedNavArgument
@@ -66,7 +71,7 @@ class ExoHolderVM() : ViewModel() {
     }
 
     // we currently only support opening one item
-    fun replaceItem(uri: Uri, mime:String? = null) {
+    fun replaceItem(uri: Uri, mime: String? = null) {
         val builder = MediaItem.Builder().setUri(uri)
         if (mime != null) {
             builder.setMimeType(mime)
@@ -121,14 +126,17 @@ class MainActivity : ComponentActivity() {
                     MainState.Empty -> {
                         // noop
                     }
+
                     is MainState.OpenFile -> {
                         with(Dispatchers.Main) {
                             startActivityForResult(it.intentToLaunch, 42)
                         }
                     }
+
                     MainState.ErrorOpen -> {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
+
                     else -> {
                         // nooop
                     }
@@ -164,9 +172,8 @@ class MainActivity : ComponentActivity() {
                         exoHolder.replaceItem(dataUri)
                         ExoPlayerScreen(
                             player = exoHolder.player,
-                            // In order to support rotate we probably don't want to call release
-                            // unless we are really exiting?
-                            onDisposeAction = exoHolder::releasePlayer
+                            lifecycleOwner = this@MainActivity,
+                            playerCleanupAction = { exoHolder.releasePlayer() },
                         )
                     } else {
                         //ExoPlayerScreen()
@@ -177,22 +184,27 @@ class MainActivity : ComponentActivity() {
                 ) {
                     ExoPlayerScreen(
                         player = exoHolder.player,
+                        this@MainActivity,
                         // In order to support rotate we probably don't want to call release
                         // unless we are really exiting?
-                        onDisposeAction = exoHolder::releasePlayer
+                        playerCleanUpAction = exoHolder::releasePlayer
                     )
                 }
             }
 
             val state = viewModel.state.collectAsState()
 
-            when(state.value) {
+            when (state.value) {
                 is MainState.LaunchMedia -> {
                     val uri = (state.value as MainState.LaunchMedia).uri
                     exoHolder.replaceItem(uri)
-                    Log.d("XXXX", "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
+                    Log.d(
+                        "XXXX",
+                        "got media intent for ${(state.value as MainState.LaunchMedia).uri}"
+                    )
                     navController.navigate("localMedia")
                 }
+
                 else -> {
                     // noop as we might be handling a VIEW intent
                 }
@@ -211,7 +223,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     openLocal: () -> Unit,
-    launch: () -> Unit
+    launch: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     CMediaPlayerTheme {
         // A surface container using the 'background' color from the theme
@@ -241,8 +254,10 @@ fun MainScreen(
 @Composable
 fun ExoPlayerScreen(
     player: Player,
-    modifier: Modifier = Modifier,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    playerCleanUpAction: () -> Unit = {},
     onDisposeAction: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
 
@@ -253,12 +268,27 @@ fun ExoPlayerScreen(
     CMediaPlayerTheme(darkTheme = true) {
         Surface {
             Box(modifier = modifier.fillMaxSize()) {
-                DisposableEffect(key1 = Unit, effect = {
-                    // might not want this
+                DisposableEffect(key1 = lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_DESTROY -> {
+                                playerCleanUpAction()
+                            }
+
+                            else -> {
+                                // no op hee
+                            }
+                        }
+                    }
+
+                    lifecycleOwner.lifecycle.addObserver(observer)
+
                     onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+
                         onDisposeAction()
                     }
-                })
+                }
                 AndroidView(
                     factory = {
                         StyledPlayerView(context).apply {
