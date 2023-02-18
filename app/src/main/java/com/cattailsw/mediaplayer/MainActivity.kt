@@ -173,7 +173,7 @@ class MainActivity : ComponentActivity() {
                         ExoPlayerScreen(
                             player = exoHolder.player,
                             lifecycleOwner = this@MainActivity,
-                            playerCleanupAction = { exoHolder.releasePlayer() },
+                            playerCleanUpAction = { exoHolder.releasePlayer() },
                         )
                     } else {
                         //ExoPlayerScreen()
