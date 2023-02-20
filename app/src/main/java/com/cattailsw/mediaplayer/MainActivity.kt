@@ -11,20 +11,23 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Button
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -52,17 +55,18 @@ import kotlinx.coroutines.launch
 
 
 class ExoHolderVM() : ViewModel() {
-    var _exoPlayer: ExoPlayer? = null
+    private var _exoPlayer: ExoPlayer? = null
+    private var currentMediaItem: MediaItem? = null
 
     val player: Player
         get() = requireNotNull(_exoPlayer)
 
     fun initPlayer(context: Context) {
-        val player = ExoPlayer.Builder(context.applicationContext).build()
-
-        player.addAnalyticsListener(EventLogger())
-
-        _exoPlayer = player
+        if (_exoPlayer == null) {
+            val player = ExoPlayer.Builder(context.applicationContext).build()
+            player.addAnalyticsListener(EventLogger())
+            _exoPlayer = player
+        }
     }
 
     // we currently only support opening one item
@@ -73,16 +77,21 @@ class ExoHolderVM() : ViewModel() {
         }
 
         val mediaItem = builder.build()
+        if (currentMediaItem != mediaItem) {
 
-        _exoPlayer?.let { player ->
-            player.clearMediaItems()
-            player.addMediaItem(mediaItem)
-            player.prepare()
+            _exoPlayer?.let { player ->
+                player.clearMediaItems()
+                player.addMediaItem(mediaItem)
+                player.prepare()
+            }
+            currentMediaItem = mediaItem
+        } else {
+            Log.d("ExoHolderVM", "got the same media item, ignoring replace call")
         }
     }
 
-    fun pause() {
-        _exoPlayer?.pause()
+    fun stop() {
+        _exoPlayer?.stop()
     }
 
     fun releasePlayer() {
@@ -110,17 +119,9 @@ class MainActivity : ComponentActivity() {
             .setMimeType("video/*")
             .build()
 
-        val playerNamedNavArgument: NamedNavArgument = navArgument("playerViewArg") {
-            type = NavType.StringType
-            nullable = false
-        }
-
         lifecycleScope.launch {
-            viewModel.state.collectLatest {
+            viewModel._state.collectLatest {
                 when (it) {
-                    MainState.Empty -> {
-                        // noop
-                    }
                     is MainState.OpenFile -> {
                         with(Dispatchers.Main) {
                             startActivityForResult(it.intentToLaunch, 42)
@@ -164,9 +165,10 @@ class MainActivity : ComponentActivity() {
                         exoHolder.replaceItem(dataUri)
                         ExoPlayerScreen(
                             player = exoHolder.player,
-                            // In order to support rotate we probably don't want to call release
-                            // unless we are really exiting?
-                            onDisposeAction = exoHolder::releasePlayer
+                            onBack = {
+                                exoHolder.releasePlayer() // probably unnecessary but just in case
+                                navController.navigateUp()
+                            }
                         )
                     } else {
                         //ExoPlayerScreen()
@@ -177,16 +179,32 @@ class MainActivity : ComponentActivity() {
                 ) {
                     ExoPlayerScreen(
                         player = exoHolder.player,
-                        // In order to support rotate we probably don't want to call release
-                        // unless we are really exiting?
-                        onDisposeAction = exoHolder::releasePlayer
+                        onBack = {
+                            exoHolder.stop()
+                            navController.navigateUp()
+                        }
+                    )
+                }
+                composable(route = "media") {
+                    val dataUri = Uri.parse("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4")
+                    exoHolder.replaceItem(dataUri)
+                    ExoPlayerScreen(
+                        player = exoHolder.player,
+                        onBack = {
+                            exoHolder.stop()
+                            navController.navigateUp()
+                                 },
                     )
                 }
             }
 
-            val state = viewModel.state.collectAsState()
+            val state = viewModel._state.collectAsState()
 
             when(state.value) {
+                MainState.Empty -> {
+                    // this causes external media to end up on main first
+                    // navController.navigate("main")
+                }
                 is MainState.LaunchMedia -> {
                     val uri = (state.value as MainState.LaunchMedia).uri
                     exoHolder.replaceItem(uri)
@@ -242,11 +260,12 @@ fun MainScreen(
 fun ExoPlayerScreen(
     player: Player,
     modifier: Modifier = Modifier,
+    onBack: () -> Unit = {},
     onDisposeAction: () -> Unit = {},
 ) {
     val context = LocalContext.current
 
-    val playWhenReady by remember { mutableStateOf(true) }
+    val playWhenReady by rememberSaveable { mutableStateOf(true) }
 
     player.playWhenReady = playWhenReady
 
@@ -254,7 +273,6 @@ fun ExoPlayerScreen(
         Surface {
             Box(modifier = modifier.fillMaxSize()) {
                 DisposableEffect(key1 = Unit, effect = {
-                    // might not want this
                     onDispose {
                         onDisposeAction()
                     }
@@ -267,6 +285,9 @@ fun ExoPlayerScreen(
                     },
                     modifier = Modifier.fillMaxSize()
                 )
+                IconButton(onClick = onBack) {
+                    Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
+                }
             }
         }
     }

@@ -7,11 +7,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MainViewModel(): ViewModel() {
-
-    var state = MutableStateFlow<MainState>(MainState.Empty)
+    val state : StateFlow<MainState>
+        get() = _state
+    val _state = MutableStateFlow<MainState>(MainState.Empty)
 
     fun openLocalFileBrowser() {
         viewModelScope.launch {
@@ -20,13 +22,13 @@ class MainViewModel(): ViewModel() {
                 addCategory(Intent.CATEGORY_OPENABLE)
                 type="video/*"
             }
-            state.emit(MainState.OpenFile(intent))
+            _state.emit(MainState.OpenFile(intent))
         }
     }
 
     fun launchMedia(uri: Uri) {
         viewModelScope.launch {
-            state.emit(MainState.LaunchMedia(uri))
+            _state.emit(MainState.LaunchMedia(uri))
         }
     }
 
@@ -36,8 +38,8 @@ class MainViewModel(): ViewModel() {
         viewModelScope.launch {
             // check if data.data starts with content:// ?
             if (data == null || resultCode != RESULT_OK || data.data == null) {
-                state.emit(MainState.ErrorOpen)
-                state.emit(MainState.Empty)
+                _state.emit(MainState.ErrorOpen)
+                _state.emit(MainState.Empty)
             } else {
                 launchMedia(data.data!!)
             }
