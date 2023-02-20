@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,8 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
@@ -50,13 +54,24 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.util.EventLogger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 
+sealed class PlayerState {
+    object Idle: PlayerState()
+    object Playing: PlayerState()
+}
+
 class ExoHolderVM() : ViewModel() {
     private var _exoPlayer: ExoPlayer? = null
     private var currentMediaItem: MediaItem? = null
+
+    val _ps = MutableStateFlow<PlayerState>(PlayerState.Idle)
+    val playerState: StateFlow<PlayerState>
+        get() = _ps
 
     val player: Player
         get() = requireNotNull(_exoPlayer)
@@ -65,6 +80,17 @@ class ExoHolderVM() : ViewModel() {
         if (_exoPlayer == null) {
             val player = ExoPlayer.Builder(context.applicationContext).build()
             player.addAnalyticsListener(EventLogger())
+            player.addListener(object: Player.Listener{
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    viewModelScope.launch {
+                        if (isPlaying) {
+                            _ps.emit(PlayerState.Playing)
+                        } else {
+                            _ps.emit(PlayerState.Idle)
+                        }
+                    }
+                }
+            })
             _exoPlayer = player
         }
     }
@@ -132,6 +158,20 @@ class MainActivity : ComponentActivity() {
                     }
                     else -> {
                         // nooop
+                    }
+                }
+            }
+        }
+
+        // keep screen on when player is in play state.
+        lifecycleScope.launch {
+            exoHolder.playerState.flowWithLifecycle(lifecycle, Lifecycle.State.RESUMED).collectLatest {
+                when(it) {
+                    PlayerState.Idle -> {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                    PlayerState.Playing -> {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     }
                 }
             }
