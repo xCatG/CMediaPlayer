@@ -10,10 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel(): ViewModel() {
+private const val TAG = "MainViewModel"
+class MainViewModel: ViewModel() {
     val state : StateFlow<MainState>
         get() = _state
-    val _state = MutableStateFlow<MainState>(MainState.Empty)
+    private val _state = MutableStateFlow<MainState>(MainState.Empty)
 
     fun openLocalFileBrowser() {
         viewModelScope.launch {
@@ -26,14 +27,14 @@ class MainViewModel(): ViewModel() {
         }
     }
 
-    fun launchMedia(uri: Uri) {
+    private fun launchMedia(uri: Uri) {
         viewModelScope.launch {
             _state.emit(MainState.LaunchMedia(uri))
         }
     }
 
     fun handleFileOpenResult(resultCode:Int, data: Intent?) {
-        Log.d("XXXX", "got intent data= ${data?.data} and ${data?.action}")
+        Log.d(TAG, "got intent data= ${data?.data} and ${data?.action}")
 
         viewModelScope.launch {
             // check if data.data starts with content:// ?

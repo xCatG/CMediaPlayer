@@ -39,14 +39,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.NamedNavArgument
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -65,11 +62,11 @@ sealed class PlayerState {
     object Playing: PlayerState()
 }
 
-class ExoHolderVM() : ViewModel() {
+class ExoHolderVM : ViewModel() {
     private var _exoPlayer: ExoPlayer? = null
     private var currentMediaItem: MediaItem? = null
 
-    val _ps = MutableStateFlow<PlayerState>(PlayerState.Idle)
+    private val _ps = MutableStateFlow<PlayerState>(PlayerState.Idle)
     val playerState: StateFlow<PlayerState>
         get() = _ps
 
@@ -133,6 +130,7 @@ class ExoHolderVM() : ViewModel() {
     }
 }
 
+private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
@@ -146,7 +144,7 @@ class MainActivity : ComponentActivity() {
             .build()
 
         lifecycleScope.launch {
-            viewModel._state.collectLatest {
+            viewModel.state.collectLatest {
                 when (it) {
                     is MainState.OpenFile -> {
                         with(Dispatchers.Main) {
@@ -157,7 +155,7 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
                     else -> {
-                        // nooop
+                        // no op
                     }
                 }
             }
@@ -238,7 +236,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val state = viewModel._state.collectAsState()
+            val state = viewModel.state.collectAsState()
 
             when(state.value) {
                 MainState.Empty -> {
@@ -248,7 +246,7 @@ class MainActivity : ComponentActivity() {
                 is MainState.LaunchMedia -> {
                     val uri = (state.value as MainState.LaunchMedia).uri
                     exoHolder.replaceItem(uri)
-                    Log.d("XXXX", "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
+                    Log.d(TAG, "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
                     navController.navigate("localMedia")
                 }
                 else -> {
