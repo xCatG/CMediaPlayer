@@ -10,7 +10,7 @@ Plan changed, now trying with compose so there are a few `@Composables` hosted i
 
 ViewModels hosted in MainActivity
 - `ExoHolderVM`: creates and holds a instance of `ExoPlayer` object that is exposed to `ExoPlayerScreen`
-
+- `MainViewModel`: still being hashed out, but it holds some high level state of the player; not yet clear how this interacts with navigation
 
 ## Flow to open a local file
 
@@ -24,11 +24,8 @@ that is handled in compose; this handler then passes uri to exo holder and then 
 
 ## Feature
 
-[] Support continued playback with device rotation
-
-    []  Figure out how to un-assign player from `StyledVideoView` so that we don't
-        have to always release player
-
+[X] Support continued playback with device rotation
+[] Custom controls in Compose
 [] Add UI to adjust volume and brightness 
 [] Add error message (from ExoPlayer)
    [] debug msg ui
@@ -36,15 +33,17 @@ that is handled in compose; this handler then passes uri to exo holder and then 
 
 ## Bugs/Issues
 
+[] "back" button and navigation doesn't seem to match while video is playing
 [] Cannot play .ts from Synology DSFiles app
 
     [] might be that exoplayer doesn't support mpeg2-ts over pure http get?
     [] for some reason, it works on Amazon Fire HD10+?
 
 [] move to media3 imports instead of exoplayer
-[] did not keep screen on while playing
 
 # Work Log
+2023-02-19  playback continues when rotating screen
+            screen on while playing
 
 2022-04-11  stuck between state emitted via viewmodel and navigation controller that is created in setContent
             maybe it's just too much abstraction to have a viewmodel here?
