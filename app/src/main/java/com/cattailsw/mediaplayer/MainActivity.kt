@@ -1,6 +1,5 @@
 package com.cattailsw.mediaplayer
 
-import android.content.Context
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
 import android.net.Uri
@@ -35,100 +34,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
-import com.google.android.exoplayer2.util.EventLogger
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-
-sealed class PlayerState {
-    object Idle: PlayerState()
-    object Playing: PlayerState()
-}
-
-class ExoHolderVM : ViewModel() {
-    private var _exoPlayer: ExoPlayer? = null
-    private var currentMediaItem: MediaItem? = null
-
-    private val _ps = MutableStateFlow<PlayerState>(PlayerState.Idle)
-    val playerState: StateFlow<PlayerState>
-        get() = _ps
-
-    val player: Player
-        get() = requireNotNull(_exoPlayer)
-
-    fun initPlayer(context: Context) {
-        if (_exoPlayer == null) {
-            val player = ExoPlayer.Builder(context.applicationContext).build()
-            player.addAnalyticsListener(EventLogger())
-            player.addListener(object: Player.Listener{
-                override fun onIsPlayingChanged(isPlaying: Boolean) {
-                    viewModelScope.launch {
-                        if (isPlaying) {
-                            _ps.emit(PlayerState.Playing)
-                        } else {
-                            _ps.emit(PlayerState.Idle)
-                        }
-                    }
-                }
-            })
-            _exoPlayer = player
-        }
-    }
-
-    // we currently only support opening one item
-    fun replaceItem(uri: Uri, mime:String? = null) {
-        val builder = MediaItem.Builder().setUri(uri)
-        if (mime != null) {
-            builder.setMimeType(mime)
-        }
-
-        val mediaItem = builder.build()
-        if (currentMediaItem != mediaItem) {
-
-            _exoPlayer?.let { player ->
-                player.clearMediaItems()
-                player.addMediaItem(mediaItem)
-                player.prepare()
-            }
-            currentMediaItem = mediaItem
-        } else {
-            Log.d("ExoHolderVM", "got the same media item, ignoring replace call")
-        }
-    }
-
-    fun stop() {
-        _exoPlayer?.stop()
-    }
-
-    fun releasePlayer() {
-        _exoPlayer?.apply {
-            release()
-        }
-        _exoPlayer = null
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        releasePlayer()
-    }
-}
 
 private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
@@ -178,17 +97,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
 
-            NavHost(navController, startDestination = "main") {
-                composable("main") {
+            NavHost(navController, startDestination = PlayerDestinations.HOME) {
+                composable(PlayerDestinations.HOME) {
                     MainScreen(
                         {
                             viewModel.openLocalFileBrowser()
                         }, {
-                            navController.navigate("media")
+                            navController.navigate(PlayerDestinations.DBG_MEDIA)
                         })
                 }
                 composable(
-                    route = "mediaExternal",
+                    route = PlayerDestinations.EXT_MEDIA,
                     deepLinks = listOf(deepLink)
                 ) {
                     val origIntent: Intent? =
@@ -213,7 +132,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
                 composable(
-                    route = "localMedia",
+                    route = PlayerDestinations.LOCAL_MEDIA,
                 ) {
                     ExoPlayerScreen(
                         player = exoHolder.player,
@@ -223,7 +142,7 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 }
-                composable(route = "media") {
+                composable(route = PlayerDestinations.DBG_MEDIA) {
                     val dataUri = Uri.parse("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4")
                     exoHolder.replaceItem(dataUri)
                     ExoPlayerScreen(
@@ -247,7 +166,7 @@ class MainActivity : ComponentActivity() {
                     val uri = (state.value as MainState.LaunchMedia).uri
                     exoHolder.replaceItem(uri)
                     Log.d(TAG, "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
-                    navController.navigate("localMedia")
+                    navController.navigate(PlayerDestinations.LOCAL_MEDIA)
                 }
                 else -> {
                     // noop as we might be handling a VIEW intent
