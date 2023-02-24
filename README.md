@@ -34,6 +34,8 @@ that is handled in compose; this handler then passes uri to exo holder and then 
 ## Bugs/Issues
 
 [] "back" button and navigation doesn't seem to match while video is playing
+    [] back crashes with NullPointer if we call navigateUp when viewing external uri
+
 [] Cannot play .ts from Synology DSFiles app
 
     [] might be that exoplayer doesn't support mpeg2-ts over pure http get?
