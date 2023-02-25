@@ -68,20 +68,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-
-            // keep screen on when player is in play state.
-            exoHolder.playerState.flowWithLifecycle(lifecycle, Lifecycle.State.RESUMED)
-                .collectLatest {
-                    when (it) {
-                        PlayerState.Idle -> {
-                            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        }
-
-                        PlayerState.Playing -> {
-                            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                        }
-                    }
-                }
         }
 
         setContent {
@@ -114,6 +100,18 @@ class MainActivity : ComponentActivity() {
 
                 else -> {
                     // noop as we might be handling a VIEW intent
+                }
+            }
+
+            // keep screen on when player is in play state.
+            val playerState = exoHolder.playerState.collectAsState()
+            when (playerState.value) {
+                PlayerState.Idle -> {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+
+                PlayerState.Playing -> {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 }
             }
         }
