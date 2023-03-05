@@ -2,8 +2,6 @@ package com.cattailsw.mediaplayer
 
 import android.content.Intent
 import android.content.Intent.ACTION_VIEW
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
@@ -22,13 +20,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import kotlinx.coroutines.Dispatchers
@@ -78,7 +71,7 @@ class MainActivity : ComponentActivity() {
                 mainOpenAction = { viewModel.openLocalFileBrowser() },
                 exoScreenBackAction = {
                     exoHolder.stop()
-                    // this crashes if we are rendering external media, need to figure out why
+                    viewModel.backToMain()
                     navController.navigateUp()
                 },
             )
@@ -88,14 +81,14 @@ class MainActivity : ComponentActivity() {
             when (state.value) {
                 MainState.Empty -> {
                     // this causes external media to end up on main first
-                    // navController.navigate("main")
+                    //navController.navigate(PlayerDestinations.HOME)
                 }
 
                 is MainState.LaunchMedia -> {
                     val uri = (state.value as MainState.LaunchMedia).uri
                     exoHolder.replaceItem(uri)
                     Log.d(TAG, "got media intent for ${(state.value as MainState.LaunchMedia).uri}")
-                    navController.navigate(PlayerDestinations.LOCAL_MEDIA)
+                    navController.navigate(PlayerDestinations.PLAYER)
                 }
 
                 else -> {

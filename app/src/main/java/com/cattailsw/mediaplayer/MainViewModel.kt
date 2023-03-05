@@ -47,6 +47,12 @@ class MainViewModel: ViewModel() {
         }
     }
 
+    fun backToMain() {
+        viewModelScope.launch {
+            _state.emit(MainState.Empty)
+        }
+    }
+
 }
 
 sealed class MainState {

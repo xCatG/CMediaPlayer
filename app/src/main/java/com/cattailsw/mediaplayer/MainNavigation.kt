@@ -12,12 +12,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.android.exoplayer2.ExoPlayer
 
 object PlayerDestinations {
     const val HOME = "main"
     const val EXT_MEDIA = "mediaExternal"
-    const val LOCAL_MEDIA = "localMedia"
+    const val PLAYER = "playerScreen"
     const val DBG_MEDIA = "media"
 }
 
@@ -60,7 +59,7 @@ fun MainNavGraph(
                 ExoPlayerScreen(player = exoHolder.player, onBack = exoScreenBackAction)
             }
         }
-        composable(route = PlayerDestinations.LOCAL_MEDIA) {
+        composable(route = PlayerDestinations.PLAYER) {
             ExoPlayerScreen(player = exoHolder.player, onBack = exoScreenBackAction)
         }
         composable(route = PlayerDestinations.DBG_MEDIA) {
