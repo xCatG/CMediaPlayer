@@ -45,20 +45,7 @@ class MainActivity : ComponentActivity() {
             .setMimeType("video/*")
             .build()
 
-        lifecycleScope.launch {
-            viewModel.state.collectLatest {
-                when (it) {
-                    MainState.ErrorOpen -> {
-                        Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
-                    }
-
-                    else -> {
-                        // no op
-                    }
-                }
-            }
-
-            // keep screen on when player is in play state.
+        lifecycleScope.launch { // keep screen on when player is in play state.
             exoHolder.playerState.flowWithLifecycle(lifecycle, Lifecycle.State.RESUMED)
                 .collectLatest {
                     when (it) {
@@ -76,11 +63,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val openDocument = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.OpenDocument(),
-                onResult = {uri ->
+                onResult = { uri ->
                     viewModel.handleResult(uri)
                 }
             )
-            
+
             val navController = rememberNavController()
 
             MainNavGraph(
@@ -100,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     // this causes external media to end up on main first
                     // navController.navigate("main")
                 }
+
                 is MainState.OpenFile -> {
                     openDocument.launch(arrayOf("video/*"))
                 }
@@ -111,8 +99,12 @@ class MainActivity : ComponentActivity() {
                     navController.navigate(PlayerDestinations.LOCAL_MEDIA)
                 }
 
+                MainState.ErrorOpen -> {
+                    Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
+                }
+
                 else -> {
-                    // noop as we might be handling a VIEW intent
+
                 }
             }
         }
