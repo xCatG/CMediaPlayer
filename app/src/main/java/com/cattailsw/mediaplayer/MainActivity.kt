@@ -45,7 +45,8 @@ class MainActivity : ComponentActivity() {
             .setMimeType("video/*")
             .build()
 
-        lifecycleScope.launch { // keep screen on when player is in play state.
+        lifecycleScope.launch {
+            // keep screen on when player is in play state.
             exoHolder.playerState.flowWithLifecycle(lifecycle, Lifecycle.State.RESUMED)
                 .collectLatest {
                     when (it) {
@@ -101,10 +102,6 @@ class MainActivity : ComponentActivity() {
 
                 MainState.ErrorOpen -> {
                     Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
-                }
-
-                else -> {
-
                 }
             }
         }
