@@ -22,6 +22,8 @@ that is handled in compose; this handler then passes uri to exo holder and then 
 
 # TODOs
 
+I think I need to reconsider the whole nav design because as-is it doesn't make sense to me.
+
 ## Feature
 
 [X] Support continued playback with device rotation
