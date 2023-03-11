@@ -1,15 +1,14 @@
 package com.cattailsw.mediaplayer
 
-import android.content.Intent
 import android.content.Intent.ACTION_VIEW
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,13 +24,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
 import androidx.navigation.NavDeepLink
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -53,12 +48,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             viewModel.state.collectLatest {
                 when (it) {
-                    is MainState.OpenFile -> {
-                        with(Dispatchers.Main) {
-                            startActivityForResult(it.intentToLaunch, 42)
-                        }
-                    }
-
                     MainState.ErrorOpen -> {
                         Toast.makeText(this@MainActivity, "open failed", Toast.LENGTH_SHORT).show()
                     }
@@ -85,6 +74,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
+            val openDocument = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.OpenDocument(),
+                onResult = {uri ->
+                    viewModel.handleResult(uri)
+                }
+            )
+            
             val navController = rememberNavController()
 
             MainNavGraph(
@@ -104,6 +100,9 @@ class MainActivity : ComponentActivity() {
                     // this causes external media to end up on main first
                     // navController.navigate("main")
                 }
+                is MainState.OpenFile -> {
+                    openDocument.launch(arrayOf("video/*"))
+                }
 
                 is MainState.LaunchMedia -> {
                     val uri = (state.value as MainState.LaunchMedia).uri
@@ -116,13 +115,6 @@ class MainActivity : ComponentActivity() {
                     // noop as we might be handling a VIEW intent
                 }
             }
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 42) {
-            viewModel.handleFileOpenResult(resultCode, data)
         }
     }
 }

@@ -33,6 +33,16 @@ class MainViewModel: ViewModel() {
         }
     }
 
+    fun handleResult(uri: Uri?) {
+        viewModelScope.launch {
+            if (uri == null) {
+                _state.emit(MainState.ErrorOpen)
+            } else {
+                launchMedia(uri)
+            }
+        }
+    }
+
     fun handleFileOpenResult(resultCode:Int, data: Intent?) {
         Log.d(TAG, "got intent data= ${data?.data} and ${data?.action}")
 
