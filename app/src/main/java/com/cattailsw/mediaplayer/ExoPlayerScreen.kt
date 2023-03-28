@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import androidx.media3.common.Player
-import com.google.android.exoplayer2.ui.PlayerView
+import androidx.media3.ui.PlayerView
 
 @Composable
 fun ExoPlayerScreen(
