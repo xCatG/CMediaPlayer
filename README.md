@@ -43,7 +43,7 @@ I think I need to reconsider the whole nav design because as-is it doesn't make 
     [] might be that exoplayer doesn't support mpeg2-ts over pure http get?
     [] for some reason, it works on Amazon Fire HD10+?
 
-[] move to media3 imports instead of exoplayer
+[X] move to media3 imports instead of exoplayer
 
 # Work Log
 2023-02-19  playback continues when rotating screen

@@ -5,16 +5,13 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
-import com.google.android.exoplayer2.source.CompositeMediaSource
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
-import com.google.android.exoplayer2.upstream.DataSchemeDataSource
-import com.google.android.exoplayer2.upstream.DefaultDataSource
-import com.google.android.exoplayer2.upstream.FileDataSource
-import com.google.android.exoplayer2.util.EventLogger
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.util.EventLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -43,7 +40,8 @@ class ExoHolderVM(
             val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
             val defaultDataSource = DefaultDataSource.Factory(context, okHttpFactory)
             val player = ExoPlayer.Builder(context.applicationContext)
-                .setMediaSourceFactory(DefaultMediaSourceFactory(context.applicationContext)
+                .setMediaSourceFactory(
+                    DefaultMediaSourceFactory(context.applicationContext)
                     .setDataSourceFactory(defaultDataSource)
                 )
                 .build()
