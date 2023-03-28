@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.ui.StyledPlayerView
+import androidx.media3.common.Player
+import com.google.android.exoplayer2.ui.PlayerView
 
 @Composable
 fun ExoPlayerScreen(
@@ -42,7 +42,7 @@ fun ExoPlayerScreen(
                 })
                 AndroidView(
                     factory = {
-                        StyledPlayerView(context).apply {
+                        PlayerView(context).apply {
                             this.player = player
                         }
                     },
