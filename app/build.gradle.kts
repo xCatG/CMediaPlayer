@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.cattailsw.mediaplayer"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.cattailsw.mediaplayer"
         minSdk = 28
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -41,7 +41,7 @@ android {
         viewBinding = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.4.3"
+        kotlinCompilerExtensionVersion = "1.5.3"
     }
     packaging {
         resources {
@@ -50,14 +50,17 @@ android {
     }
 }
 
+val composeBomVersion : String by rootProject.extra
+
 dependencies {
 
     implementation(libs.androidx.core)
-    implementation(platform("androidx.compose:compose-bom:2023.03.00"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
+    implementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+    implementation(libs.compose.ui.base)
+    implementation(libs.compose.ui.tooling.base)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.material3)
     implementation(libs.lifecycle.runtime)
     implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.viewmodel)
@@ -75,9 +78,9 @@ dependencies {
 
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso)
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.03.00"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+    androidTestImplementation(libs.compose.ui.test.junit4)
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation(libs.compose.ui.tooling.base)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
