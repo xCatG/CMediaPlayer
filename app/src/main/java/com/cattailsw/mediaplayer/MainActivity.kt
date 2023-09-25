@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
@@ -62,8 +63,10 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val openDocument = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.OpenDocument(),
+            // TODO: support non-GMS devices by checking if this is not available and fall back
+            // to SAF document opening?
+            val pickMedia = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia(),
                 onResult = { uri ->
                     viewModel.handleResult(uri)
                 }
@@ -90,7 +93,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 is MainState.OpenFile -> {
-                    openDocument.launch(arrayOf("video/*"))
+                    pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly))
                 }
 
                 is MainState.LaunchMedia -> {
