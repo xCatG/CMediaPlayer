@@ -18,12 +18,7 @@ class MainViewModel: ViewModel() {
 
     fun openLocalFileBrowser() {
         viewModelScope.launch {
-            // open SAF to read some kind of files
-            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type="video/*"
-            }
-            _state.emit(MainState.OpenFile(intent))
+            _state.emit(MainState.OpenFile)
         }
     }
 
@@ -62,6 +57,6 @@ class MainViewModel: ViewModel() {
 sealed class MainState {
     object Empty: MainState()
     object ErrorOpen: MainState()
-    data class OpenFile(val intentToLaunch: Intent): MainState()
+    object OpenFile: MainState()
     data class LaunchMedia(val uri: Uri): MainState()
 }
