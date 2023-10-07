@@ -40,6 +40,16 @@ fun ExoPlayerScreen(
                         onDisposeAction()
                     }
                 })
+                /**
+                 * TODO
+                 *
+                 * create playback control UI in compose
+                 *
+                 * control system UI show/hide
+                 * make systemUI show/hide following playback control?
+                 *
+                 *
+                 */
                 AndroidView(
                     factory = {
                         PlayerView(context).apply {
