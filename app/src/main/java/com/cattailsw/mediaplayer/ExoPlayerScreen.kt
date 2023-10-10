@@ -1,7 +1,8 @@
 package com.cattailsw.mediaplayer
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -14,10 +15,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
+import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
+
 
 @Composable
 fun ExoPlayerScreen(
@@ -29,35 +32,46 @@ fun ExoPlayerScreen(
     val context = LocalContext.current
 
     val playWhenReady by rememberSaveable { mutableStateOf(true) }
+    val isFullScreen by rememberSaveable {
+        mutableStateOf(true)
+    }
 
     player.playWhenReady = playWhenReady
 
     CMediaPlayerTheme(darkTheme = true) {
-        Surface {
-            Box(modifier = modifier.fillMaxSize()) {
-                DisposableEffect(key1 = Unit, effect = {
-                    onDispose {
-                        onDisposeAction()
+        Surface(modifier = modifier.fillMaxSize()) {
+            DisposableEffect(key1 = Unit, effect = {
+                onDispose {
+                    onDisposeAction()
+                }
+            })
+            /**
+             * TODO
+             *
+             * create playback control UI in compose
+             *
+             * control system UI show/hide
+             * make systemUI show/hide following playback control?
+             *
+             *
+             */
+            AndroidView(
+                factory = {
+                    PlayerView(context).apply {
+                        this.player = player
                     }
-                })
-                /**
-                 * TODO
-                 *
-                 * create playback control UI in compose
-                 *
-                 * control system UI show/hide
-                 * make systemUI show/hide following playback control?
-                 *
-                 *
-                 */
-                AndroidView(
-                    factory = {
-                        PlayerView(context).apply {
-                            this.player = player
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+            Column(
+                modifier = Modifier.padding(
+                    top = if (isFullScreen) {
+                        0.dp
+                    } else {
+                        20.dp
+                    }
                 )
+            ) {
                 IconButton(onClick = onBack) {
                     Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
                 }

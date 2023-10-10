@@ -29,14 +29,10 @@ private val LightColorPalette = lightColorScheme(
 
 @Composable
 fun CMediaPlayerTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
-    }
-
     MaterialTheme(
-        colorScheme = colors,
+        colorScheme = if (darkTheme) {
+            DarkColorPalette } else {
+            LightColorPalette},
         typography = Typography,
         shapes = Shapes,
         content = content

@@ -11,20 +11,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -114,45 +104,5 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-}
-
-@Composable
-fun MainScreen(
-    openLocal: () -> Unit,
-    launch: () -> Unit
-) {
-    CMediaPlayerTheme {
-        // A surface container using the 'background' color from the theme
-        Surface(
-            modifier = Modifier.safeDrawingPadding().fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-
-                Button(openLocal) {
-                    Text("Open Local File")
-                }
-
-                Button(
-                    launch
-                ) {
-                    Text("launch player")
-                }
-            }
-        }
-    }
-
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    CMediaPlayerTheme {
-        MainScreen({}, {})
     }
 }
