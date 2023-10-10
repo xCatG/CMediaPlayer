@@ -33,6 +33,7 @@ fun MainNavGraph(
     startDestination: String = PlayerDestinations.HOME,
     mainOpenAction: () -> Unit = {},
     exoScreenBackAction: () -> Unit = {},
+    onFullScreenToggle: (Boolean) -> Unit = {},
 ) {
     NavHost(
         navController = navController,
@@ -42,12 +43,12 @@ fun MainNavGraph(
         composable(route = PlayerDestinations.HOME) {
             MainScreen(
                 openLocal = mainOpenAction,
-                launch = {navController.navigate(PlayerDestinations.DBG_MEDIA)}
+                launch = { navController.navigate(PlayerDestinations.DBG_MEDIA) }
             )
         }
         composable(route = PlayerDestinations.EXT_MEDIA, deepLinks = listOf(extDeepLink)) {
             // all these parsing here doesn't feel right, figure out how to refactor this
-            val origIntent : Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val origIntent: Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)
             } else {
                 it.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
@@ -56,11 +57,19 @@ fun MainNavGraph(
             if (origIntent != null) {
                 val dataUri: Uri = requireNotNull(origIntent.data)
                 exoHolder.replaceItem(dataUri)
-                ExoPlayerScreen(player = exoHolder.player, onBack = exoScreenBackAction)
+                ExoPlayerScreen(
+                    player = exoHolder.player,
+                    onBack = exoScreenBackAction,
+                    onToggleFullScreen = onFullScreenToggle
+                )
             }
         }
         composable(route = PlayerDestinations.LOCAL_MEDIA) {
-            ExoPlayerScreen(player = exoHolder.player, onBack = exoScreenBackAction)
+            ExoPlayerScreen(
+                player = exoHolder.player,
+                onBack = exoScreenBackAction,
+                onToggleFullScreen = onFullScreenToggle
+            )
         }
         composable(route = PlayerDestinations.DBG_MEDIA) {
             val dataUri = Uri.parse("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4")
@@ -71,6 +80,7 @@ fun MainNavGraph(
                     exoHolder.stop()
                     navController.navigateUp()
                 },
+                onToggleFullScreen = onFullScreenToggle
             )
         }
     }

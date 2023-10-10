@@ -28,6 +28,7 @@ fun ExoPlayerScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
     onDisposeAction: () -> Unit = {},
+    onToggleFullScreen: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
 
@@ -61,7 +62,7 @@ fun ExoPlayerScreen(
                         this.player = player
                     }
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
             Column(
                 modifier = Modifier.padding(

@@ -3,6 +3,7 @@ package com.cattailsw.mediaplayer
 import android.content.Intent.ACTION_VIEW
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -15,6 +16,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -32,7 +35,20 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private val exoHolder: ExoHolderVM by viewModels()
 
-
+    private fun toggleFullScreen(isFullScreen: Boolean) {
+        val rootView: View? = findViewById(android.R.id.content)
+        if (rootView != null) {
+            val controller = WindowInsetsControllerCompat(window,rootView)
+            if (isFullScreen) {
+                controller.hide(WindowInsetsCompat.Type.statusBars())
+                controller.hide(WindowInsetsCompat.Type.navigationBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.statusBars())
+                controller.show(WindowInsetsCompat.Type.navigationBars())
+            }
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -78,6 +94,7 @@ class MainActivity : ComponentActivity() {
                     // this crashes if we are rendering external media, need to figure out why
                     navController.navigateUp()
                 },
+                onFullScreenToggle = ::toggleFullScreen
             )
 
             val state = viewModel.state.collectAsState()
