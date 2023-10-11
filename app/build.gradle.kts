@@ -55,7 +55,7 @@ val composeBomVersion : String by rootProject.extra
 dependencies {
 
     implementation(libs.androidx.core)
-    implementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+    implementation(platform("androidx.compose:compose-bom:2023.10.00"))
     implementation(libs.compose.ui.base)
     implementation(libs.compose.ui.tooling.base)
     implementation(libs.compose.ui.tooling.preview)
@@ -78,7 +78,7 @@ dependencies {
 
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso)
-    androidTestImplementation(platform("androidx.compose:compose-bom:$composeBomVersion"))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.00"))
     androidTestImplementation(libs.compose.ui.test.junit4)
 
     debugImplementation(libs.compose.ui.tooling.base)
