@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -13,6 +15,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -33,7 +36,7 @@ fun ExoPlayerScreen(
     val context = LocalContext.current
 
     val playWhenReady by rememberSaveable { mutableStateOf(true) }
-    val isFullScreen by rememberSaveable {
+    var isFullScreen by rememberSaveable {
         mutableStateOf(true)
     }
 
@@ -67,14 +70,31 @@ fun ExoPlayerScreen(
             Column(
                 modifier = Modifier.padding(
                     top = if (isFullScreen) {
-                        0.dp
+                        40.dp
                     } else {
-                        20.dp
+                        80.dp
+                    },
+                    bottom = if (isFullScreen) {
+                        40.dp
+                    } else {
+                        80.dp
                     }
                 )
             ) {
                 IconButton(onClick = onBack) {
                     Icon(imageVector = Icons.Filled.ArrowBack, contentDescription = "Back")
+                }
+                IconButton(onClick = {
+                    isFullScreen = !isFullScreen
+                    onToggleFullScreen(isFullScreen)
+                }) {
+                    Icon(
+                        imageVector = if (isFullScreen) {
+                            Icons.Filled.KeyboardArrowDown
+                        } else {
+                            Icons.Filled.KeyboardArrowUp
+                        }, contentDescription = "full screen toggle"
+                    )
                 }
             }
         }
