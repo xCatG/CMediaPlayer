@@ -11,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
@@ -135,10 +137,24 @@ fun MainScreen(
                 ) {
                     Text("launch player")
                 }
+
+                PlaybackHistory()
             }
         }
     }
 
+}
+
+@Composable
+fun PlaybackHistory(modifier: Modifier = Modifier.fillMaxSize()) {
+    // TODO add playback history view here; this should be a lazycolumn showing thumbnails from most
+    // recent playback
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.background(color=MaterialTheme.colorScheme.secondary)
+    ) {
+        Text("Playback History")
+    }
 }
 
 
