@@ -1,6 +1,7 @@
 package com.cattailsw.mediaplayer
 
-import android.content.Intent.ACTION_VIEW
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
@@ -14,22 +15,27 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavDeepLink
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -44,9 +50,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         exoHolder.initPlayer(applicationContext)
-        val deepLink: NavDeepLink = NavDeepLink.Builder().setAction(ACTION_VIEW)
-            .setMimeType("video/*")
-            .build()
 
         lifecycleScope.launch {
             // keep screen on when player is in play state.
@@ -77,7 +80,11 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             MainNavGraph(
-                exoHolder = exoHolder, extDeepLink = deepLink, navController = navController,
+                exoHolder = exoHolder, extDeepLink = navDeepLink {
+                    mimeType = "video/*"
+                    action = Intent.ACTION_VIEW
+                },
+                navController = navController,
                 mainOpenAction = { viewModel.openLocalFileBrowser() },
                 exoScreenBackAction = {
                     exoHolder.stop()
@@ -115,9 +122,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
+    playbackHistoryItems: StateFlow<List<PlaybackHistory>>,
     openLocal: () -> Unit,
     launch: () -> Unit
 ) {
+
     CMediaPlayerTheme {
         // A surface container using the 'background' color from the theme
         Surface(
@@ -138,7 +147,7 @@ fun MainScreen(
                     Text("launch player")
                 }
 
-                PlaybackHistory()
+                PlaybackHistory(playbackHistoryItems)
             }
         }
     }
@@ -146,7 +155,12 @@ fun MainScreen(
 }
 
 @Composable
-fun PlaybackHistory(modifier: Modifier = Modifier.fillMaxSize()) {
+fun PlaybackHistory(
+    playbackHistory: StateFlow<List<PlaybackHistory>>,
+    modifier: Modifier = Modifier.fillMaxSize()
+) {
+    val historyItems: List<PlaybackHistory> by playbackHistory.collectAsState()
+
     // TODO add playback history view here; this should be a lazycolumn showing thumbnails from most
     // recent playback
     Column(
@@ -154,6 +168,11 @@ fun PlaybackHistory(modifier: Modifier = Modifier.fillMaxSize()) {
         modifier = modifier.background(color=MaterialTheme.colorScheme.secondary)
     ) {
         Text("Playback History")
+        LazyColumn {
+            items(historyItems) { item ->
+                Text("item: ${item.uri}")
+            }
+        }
     }
 }
 
@@ -161,7 +180,13 @@ fun PlaybackHistory(modifier: Modifier = Modifier.fillMaxSize()) {
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
+    val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
+        PlaybackHistory(Uri.parse("test"), 1L, 0),
+        PlaybackHistory(Uri.parse("test2"), 2L, 1),
+        PlaybackHistory(Uri.parse("test3"), 3L, 0)
+    )) }
+
     CMediaPlayerTheme {
-        MainScreen({}, {})
+        MainScreen(list, {}, {})
     }
 }

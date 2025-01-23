@@ -41,6 +41,7 @@ fun MainNavGraph(
     ) {
         composable(route = PlayerDestinations.HOME) {
             MainScreen(
+                playbackHistoryItems = exoHolder.historyFlow,
                 openLocal = mainOpenAction,
                 launch = {navController.navigate(PlayerDestinations.DBG_MEDIA)}
             )
