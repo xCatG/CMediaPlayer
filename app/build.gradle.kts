@@ -1,16 +1,17 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.cattailsw.mediaplayer"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.cattailsw.mediaplayer"
         minSdk = 28
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -55,7 +56,7 @@ val composeBomVersion : String by rootProject.extra
 dependencies {
 
     implementation(libs.androidx.core)
-    implementation(platform("androidx.compose:compose-bom:2023.10.00"))
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.compose.ui.base)
     implementation(libs.compose.ui.tooling.base)
     implementation(libs.compose.ui.tooling.preview)
@@ -78,7 +79,7 @@ dependencies {
 
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(libs.androidx.test.espresso)
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.00"))
+    androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)
 
     debugImplementation(libs.compose.ui.tooling.base)
