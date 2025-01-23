@@ -60,3 +60,5 @@ sealed class MainState {
     object OpenFile: MainState()
     data class LaunchMedia(val uri: Uri): MainState()
 }
+
+data class PlaybackHistory(val uri: Uri, val lastTimestamp: Long, val playbackCount:Int = 0)
