@@ -13,8 +13,16 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -27,7 +35,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -49,6 +60,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         exoHolder.initPlayer(applicationContext)
 
         lifecycleScope.launch {
@@ -130,10 +144,13 @@ fun MainScreen(
     CMediaPlayerTheme {
         // A surface container using the 'background' color from the theme
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),//.safeDrawingPadding(),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
+                modifier = Modifier
+                    .padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 0.dp)
+                    .systemBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -157,7 +174,8 @@ fun MainScreen(
 @Composable
 fun PlaybackHistory(
     playbackHistory: StateFlow<List<PlaybackHistory>>,
-    modifier: Modifier = Modifier.fillMaxSize()
+    modifier: Modifier = Modifier,
+    itemClick: (uri: Uri) -> Unit = {}
 ) {
     val historyItems: List<PlaybackHistory> by playbackHistory.collectAsState()
 
@@ -165,13 +183,33 @@ fun PlaybackHistory(
     // recent playback
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.background(color=MaterialTheme.colorScheme.secondary)
+        modifier = modifier.background(color=MaterialTheme.colorScheme.secondary).fillMaxSize()
     ) {
-        Text("Playback History")
+        Text("Playback History", style=MaterialTheme.typography.titleLarge)
         LazyColumn {
             items(historyItems) { item ->
-                Text("item: ${item.uri}")
+                HistoryItem("item: ${item.uri}", modifier = Modifier.clickable(onClick = { itemClick(item.uri) }))
             }
+        }
+    }
+}
+
+@Composable
+fun HistoryItem(
+    displayString: String,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.padding(4.dp)
+            // placeholder for a thumbnail, remove when we actually do read from uri
+            .fillMaxWidth(0.25f)
+            .aspectRatio(16f/9f)
+            .background(Color.Gray)) {
+            // pass
+        }
+        Column(modifier=Modifier.fillMaxWidth()) {
+            Text(displayString, style=MaterialTheme.typography.titleMedium)
+            Text("test item info such as last played time, or length or others tbd", style=MaterialTheme.typography.bodySmall)
         }
     }
 }
