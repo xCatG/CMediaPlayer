@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -49,6 +48,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 
 private const val TAG = "MainActivity"
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     playbackHistoryItems: StateFlow<List<PlaybackHistory>>,
     openLocal: () -> Unit,
-    launch: () -> Unit
+    launchPlayer: () -> Unit
 ) {
 
     CMediaPlayerTheme {
@@ -150,7 +150,7 @@ fun MainScreen(
             Column(
                 modifier = Modifier
                     .padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 0.dp)
-                    .systemBarsPadding(),
+                    .systemBarsPadding().fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -159,7 +159,7 @@ fun MainScreen(
                 }
 
                 Button(
-                    launch
+                    launchPlayer
                 ) {
                     Text("launch player")
                 }
@@ -175,20 +175,25 @@ fun MainScreen(
 fun PlaybackHistory(
     playbackHistory: StateFlow<List<PlaybackHistory>>,
     modifier: Modifier = Modifier,
-    itemClick: (uri: Uri) -> Unit = {}
+    onItemClick: (uri: Uri) -> Unit = {}
 ) {
     val historyItems: List<PlaybackHistory> by playbackHistory.collectAsState()
 
-    // TODO add playback history view here; this should be a lazycolumn showing thumbnails from most
-    // recent playback
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier.background(color=MaterialTheme.colorScheme.secondary).fillMaxSize()
+        modifier = modifier.background(color=MaterialTheme.colorScheme.primaryContainer).fillMaxSize()
     ) {
         Text("Playback History", style=MaterialTheme.typography.titleLarge)
-        LazyColumn {
-            items(historyItems) { item ->
-                HistoryItem("item: ${item.uri}", modifier = Modifier.clickable(onClick = { itemClick(item.uri) }))
+        if (historyItems.isEmpty()) {
+            Text("No Playback History", style=MaterialTheme.typography.bodyMedium, modifier=Modifier.padding(16.dp))
+        } else {
+            LazyColumn {
+                items(historyItems) { item ->
+                    HistoryItem(
+                        item = item,
+                        modifier = Modifier.clickable(onClick = { onItemClick(item.uri) })
+                    )
+                }
             }
         }
     }
@@ -196,7 +201,7 @@ fun PlaybackHistory(
 
 @Composable
 fun HistoryItem(
-    displayString: String,
+    item: PlaybackHistory,
     modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier.fillMaxWidth()) {
@@ -206,10 +211,11 @@ fun HistoryItem(
             .aspectRatio(16f/9f)
             .background(Color.Gray)) {
             // pass
+            Text(item.uri.toString(), style=MaterialTheme.typography.bodySmall)
         }
         Column(modifier=Modifier.fillMaxWidth()) {
-            Text(displayString, style=MaterialTheme.typography.titleMedium)
-            Text("test item info such as last played time, or length or others tbd", style=MaterialTheme.typography.bodySmall)
+            Text(item.uri.toString(), style=MaterialTheme.typography.titleMedium)
+            Text("Last Played: ${item.lastTimestamp}, Playback Count: ${item.playbackCount}", style=MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -219,9 +225,9 @@ fun HistoryItem(
 @Composable
 fun DefaultPreview() {
     val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
-        PlaybackHistory(Uri.parse("test"), 1L, 0),
-        PlaybackHistory(Uri.parse("test2"), 2L, 1),
-        PlaybackHistory(Uri.parse("test3"), 3L, 0)
+        PlaybackHistory("test".toUri(), 1L, 0),
+        PlaybackHistory("test2".toUri(), 2L, 1),
+        PlaybackHistory("test3".toUri(), 3L, 0)
     )) }
 
     CMediaPlayerTheme {
