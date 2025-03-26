@@ -1,6 +1,7 @@
 package com.cattailsw.mediaplayer
 
-import android.content.Intent.ACTION_VIEW
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
@@ -11,25 +12,43 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavDeepLink
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
 
 
 private const val TAG = "MainActivity"
@@ -41,10 +60,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         exoHolder.initPlayer(applicationContext)
-        val deepLink: NavDeepLink = NavDeepLink.Builder().setAction(ACTION_VIEW)
-            .setMimeType("video/*")
-            .build()
 
         lifecycleScope.launch {
             // keep screen on when player is in play state.
@@ -75,7 +94,11 @@ class MainActivity : ComponentActivity() {
             val navController = rememberNavController()
 
             MainNavGraph(
-                exoHolder = exoHolder, extDeepLink = deepLink, navController = navController,
+                exoHolder = exoHolder, extDeepLink = navDeepLink {
+                    mimeType = "video/*"
+                    action = Intent.ACTION_VIEW
+                },
+                navController = navController,
                 mainOpenAction = { viewModel.openLocalFileBrowser() },
                 exoScreenBackAction = {
                     exoHolder.stop()
@@ -113,16 +136,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(
+    playbackHistoryItems: StateFlow<List<PlaybackHistory>>,
     openLocal: () -> Unit,
-    launch: () -> Unit
+    launchPlayer: () -> Unit
 ) {
+
     CMediaPlayerTheme {
         // A surface container using the 'background' color from the theme
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),//.safeDrawingPadding(),
             color = MaterialTheme.colorScheme.background
         ) {
             Column(
+                modifier = Modifier
+                    .padding(top = 16.dp, start = 8.dp, end = 8.dp, bottom = 0.dp)
+                    .systemBarsPadding().fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -131,21 +159,78 @@ fun MainScreen(
                 }
 
                 Button(
-                    launch
+                    launchPlayer
                 ) {
                     Text("launch player")
                 }
+
+                PlaybackHistory(playbackHistoryItems)
             }
         }
     }
 
 }
 
+@Composable
+fun PlaybackHistory(
+    playbackHistory: StateFlow<List<PlaybackHistory>>,
+    modifier: Modifier = Modifier,
+    onItemClick: (uri: Uri) -> Unit = {}
+) {
+    val historyItems: List<PlaybackHistory> by playbackHistory.collectAsState()
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.background(color=MaterialTheme.colorScheme.primaryContainer).fillMaxSize()
+    ) {
+        Text("Playback History", style=MaterialTheme.typography.titleLarge)
+        if (historyItems.isEmpty()) {
+            Text("No Playback History", style=MaterialTheme.typography.bodyMedium, modifier=Modifier.padding(16.dp))
+        } else {
+            LazyColumn {
+                items(historyItems) { item ->
+                    HistoryItem(
+                        item = item,
+                        modifier = Modifier.clickable(onClick = { onItemClick(item.uri) })
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun HistoryItem(
+    item: PlaybackHistory,
+    modifier: Modifier = Modifier
+) {
+    Row(modifier = modifier.fillMaxWidth()) {
+        Box(modifier = Modifier.padding(4.dp)
+            // placeholder for a thumbnail, remove when we actually do read from uri
+            .fillMaxWidth(0.25f)
+            .aspectRatio(16f/9f)
+            .background(Color.Gray)) {
+            // pass
+            Text(item.uri.toString(), style=MaterialTheme.typography.bodySmall)
+        }
+        Column(modifier=Modifier.fillMaxWidth()) {
+            Text(item.uri.toString(), style=MaterialTheme.typography.titleMedium)
+            Text("Last Played: ${item.lastTimestamp}, Playback Count: ${item.playbackCount}", style=MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
+    val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
+        PlaybackHistory("test".toUri(), 1L, 0),
+        PlaybackHistory("test2".toUri(), 2L, 1),
+        PlaybackHistory("test3".toUri(), 3L, 0)
+    )) }
+
     CMediaPlayerTheme {
-        MainScreen({}, {})
+        MainScreen(list, {}, {})
     }
 }

@@ -25,6 +25,15 @@ sealed class PlayerState {
 class ExoHolderVM(
     private val okHttpClient: OkHttpClient = DIGraph.okHttpClient,
 ) : ViewModel() {
+
+    // TODO find a better place for this; the flow is placed here so I don't have to change navgraph
+    private val _historyFlow: MutableStateFlow<List<PlaybackHistory>> = MutableStateFlow<List<PlaybackHistory>>(listOf(
+        PlaybackHistory(Uri.parse("test"), 1L, 0),
+        PlaybackHistory(Uri.parse("test2"), 2L, 1),
+        PlaybackHistory(Uri.parse("test3"), 3L, 0)
+    ))
+    val historyFlow: StateFlow<List<PlaybackHistory>> = _historyFlow
+
     private var _exoPlayer: ExoPlayer? = null
     private var currentMediaItem: MediaItem? = null
 

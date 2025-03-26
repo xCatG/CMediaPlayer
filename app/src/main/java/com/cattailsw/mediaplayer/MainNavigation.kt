@@ -41,8 +41,9 @@ fun MainNavGraph(
     ) {
         composable(route = PlayerDestinations.HOME) {
             MainScreen(
+                playbackHistoryItems = exoHolder.historyFlow,
                 openLocal = mainOpenAction,
-                launch = {navController.navigate(PlayerDestinations.DBG_MEDIA)}
+                launchPlayer = {navController.navigate(PlayerDestinations.DBG_MEDIA)}
             )
         }
         composable(route = PlayerDestinations.EXT_MEDIA, deepLinks = listOf(extDeepLink)) {
