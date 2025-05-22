@@ -13,6 +13,7 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.lifecycle.ViewModelProvider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,8 @@ import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
+import com.cattailsw.mediaplayer.data.AppDatabase // Import AppDatabase
+import com.cattailsw.mediaplayer.data.PlaybackHistory
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +58,9 @@ private const val TAG = "MainActivity"
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: MainViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModels {
+        MainViewModelFactory(AppDatabase.getDatabase(application).playbackHistoryDao())
+    }
     private val exoHolder: ExoHolderVM by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -92,22 +97,26 @@ class MainActivity : ComponentActivity() {
             )
 
             val navController = rememberNavController()
+            val mainViewModelState = viewModel.state.collectAsState() // Renamed to avoid conflict
+            val playbackHistoryItems = viewModel.playbackHistoryFlow
 
             MainNavGraph(
-                exoHolder = exoHolder, extDeepLink = navDeepLink {
+                exoHolder = exoHolder,
+                mainViewModel = viewModel, // Pass the viewModel
+                extDeepLink = navDeepLink {
                     mimeType = "video/*"
                     action = Intent.ACTION_VIEW
                 },
                 navController = navController,
-                mainOpenAction = { viewModel.openLocalFileBrowser() },
+                // mainOpenAction = { viewModel.openLocalFileBrowser() }, // This will be handled by MainScreen now
                 exoScreenBackAction = {
                     exoHolder.stop()
-                    // this crashes if we are rendering external media, need to figure out why
                     navController.navigateUp()
                 },
+                playbackHistoryItems = playbackHistoryItems // Pass the flow here
             )
 
-            val state = viewModel.state.collectAsState()
+            val state = mainViewModelState // Use the renamed state
 
             when (state.value) {
                 MainState.Empty -> {
@@ -138,7 +147,8 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     playbackHistoryItems: StateFlow<List<PlaybackHistory>>,
     openLocal: () -> Unit,
-    launchPlayer: () -> Unit
+    // launchPlayer: () -> Unit, // launchPlayer is not used directly here anymore
+    onHistoryItemClick: (Uri) -> Unit // To handle item clicks
 ) {
 
     CMediaPlayerTheme {
@@ -154,17 +164,17 @@ fun MainScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-                Button(openLocal) {
+                Button(onClick = openLocal) { // Modified to use onClick lambda
                     Text("Open Local File")
                 }
 
-                Button(
-                    launchPlayer
-                ) {
-                    Text("launch player")
-                }
+                // Button to launch player is removed as it's not directly used in MainScreen now
+                // It's part of the navigation flow when an item is selected or opened.
 
-                PlaybackHistory(playbackHistoryItems)
+                PlaybackHistory(
+                    playbackHistory = playbackHistoryItems,
+                    onItemClick = onHistoryItemClick
+                )
             }
         }
     }
@@ -175,7 +185,7 @@ fun MainScreen(
 fun PlaybackHistory(
     playbackHistory: StateFlow<List<PlaybackHistory>>,
     modifier: Modifier = Modifier,
-    onItemClick: (uri: Uri) -> Unit = {}
+    onItemClick: (uri: Uri) -> Unit
 ) {
     val historyItems: List<PlaybackHistory> by playbackHistory.collectAsState()
 
@@ -230,7 +240,21 @@ fun DefaultPreview() {
         PlaybackHistory("test3".toUri(), 3L, 0)
     )) }
 
+    // For the preview, we need to create a MainViewModel instance,
+    // which now requires an Application. This is tricky in @Preview.
+    // A common approach is to provide a fake/mock ViewModel or pass null/empty data for preview.
+    // For simplicity, we'll keep the existing preview structure, which might not fully reflect
+    // the new ViewModel integration but keeps the UI preview functional.
+    // Alternatively, create a mock Application context or use a tool like Hilt for previews.
+
+    val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
+        PlaybackHistory("preview_test1".toUri(), 1L, 0),
+        PlaybackHistory("preview_test2".toUri(), 2L, 1),
+        PlaybackHistory("preview_test3".toUri(), 3L, 0)
+    )) }
+
     CMediaPlayerTheme {
-        MainScreen(list, {}, {})
+        // MainScreen now expects onHistoryItemClick
+        MainScreen(list, {}, onItemClick = {})
     }
 }
