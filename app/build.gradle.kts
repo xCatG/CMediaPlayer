@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.okhttp3.okhttp)
     implementation(libs.okhttp3.logging)
+    implementation("io.coil-kt:coil-compose:2.6.0") // Coil for image loading
 
     testImplementation(libs.junit4)
     testImplementation("androidx.room:room-testing:$roomVersion")
@@ -87,6 +88,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("org.mockito:mockito-inline:5.2.1") // For mocking final classes
 
 
     androidTestImplementation(libs.androidx.test.ext)

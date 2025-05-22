@@ -36,9 +36,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import java.io.File
+import java.util.concurrent.TimeUnit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -59,9 +66,13 @@ private const val TAG = "MainActivity"
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory(AppDatabase.getDatabase(application).playbackHistoryDao())
+        MainViewModelFactory(
+            application,
+            AppDatabase.getDatabase(application).playbackHistoryDao(),
+            exoHolder // Pass ExoHolderVM instance
+        )
     }
-    private val exoHolder: ExoHolderVM by viewModels()
+    private val exoHolder: ExoHolderVM by viewModels() // exoHolder needs to be initialized before viewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -214,19 +225,68 @@ fun HistoryItem(
     item: PlaybackHistory,
     modifier: Modifier = Modifier
 ) {
-    Row(modifier = modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.padding(4.dp)
-            // placeholder for a thumbnail, remove when we actually do read from uri
-            .fillMaxWidth(0.25f)
-            .aspectRatio(16f/9f)
-            .background(Color.Gray)) {
-            // pass
-            Text(item.uri.toString(), style=MaterialTheme.typography.bodySmall)
+    Row(modifier = modifier
+        .fillMaxWidth()
+        .padding(vertical = 4.dp)) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(item.thumbnailPath?.let { File(it) })
+                .crossfade(true)
+                .build(),
+            placeholder = painterResource(R.drawable.ic_default_thumbnail_placeholder),
+            error = painterResource(R.drawable.ic_default_thumbnail_placeholder),
+            contentDescription = "Video thumbnail",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth(0.3f) // Adjusted width for better thumbnail visibility
+                .aspectRatio(16f / 9f)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+        Column(modifier = Modifier
+            .padding(start = 8.dp)
+            .fillMaxWidth()) {
+            Text(
+                text = if (!item.title.isNullOrBlank()) item.title else item.uri.pathSegments.lastOrNull() ?: item.uri.toString(), // Fallback to last path segment or full URI
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2 // Allow for longer titles
+            )
+            if (!item.artist.isNullOrBlank()) {
+                Text(
+                    text = item.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
+            }
+            val durationString = formatDuration(item.duration)
+            if (durationString.isNotBlank()) {
+                Text(
+                    text = "Duration: $durationString",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                text = "Played: ${item.playbackCount} times",
+                style = MaterialTheme.typography.bodySmall
+            )
+             Text(
+                // Displaying lastTimestamp in a more readable way could be added later
+                text = "Last Access: ${item.lastTimestamp}", // Simplified for now
+                style = MaterialTheme.typography.bodySmall
+            )
         }
-        Column(modifier=Modifier.fillMaxWidth()) {
-            Text(item.uri.toString(), style=MaterialTheme.typography.titleMedium)
-            Text("Last Played: ${item.lastTimestamp}, Playback Count: ${item.playbackCount}", style=MaterialTheme.typography.bodySmall)
-        }
+    }
+}
+
+fun formatDuration(millis: Long?): String {
+    if (millis == null || millis <= 0) return "" // Return empty or "--:--" if you prefer
+    val totalSeconds = millis / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
     }
 }
 
@@ -234,24 +294,36 @@ fun HistoryItem(
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
-    val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
-        PlaybackHistory("test".toUri(), 1L, 0),
-        PlaybackHistory("test2".toUri(), 2L, 1),
-        PlaybackHistory("test3".toUri(), 3L, 0)
-    )) }
-
-    // For the preview, we need to create a MainViewModel instance,
-    // which now requires an Application. This is tricky in @Preview.
-    // A common approach is to provide a fake/mock ViewModel or pass null/empty data for preview.
-    // For simplicity, we'll keep the existing preview structure, which might not fully reflect
-    // the new ViewModel integration but keeps the UI preview functional.
-    // Alternatively, create a mock Application context or use a tool like Hilt for previews.
-
-    val list = remember { MutableStateFlow(listOf<PlaybackHistory>(
-        PlaybackHistory("preview_test1".toUri(), 1L, 0),
-        PlaybackHistory("preview_test2".toUri(), 2L, 1),
-        PlaybackHistory("preview_test3".toUri(), 3L, 0)
-    )) }
+    val previewHistoryItems = listOf(
+        PlaybackHistory(
+            uri = "preview_uri_1".toUri(),
+            lastTimestamp = System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1),
+            playbackCount = 2,
+            title = "Big Buck Bunny - A very long title that might wrap to two lines",
+            duration = TimeUnit.MINUTES.toMillis(9) + TimeUnit.SECONDS.toMillis(56),
+            artist = "Blender Foundation",
+            thumbnailPath = null // Actual file path won't render in @Preview easily, Coil will show error/placeholder
+        ),
+        PlaybackHistory(
+            uri = "preview_uri_2/video.mp4".toUri(), // Example with path segment
+            lastTimestamp = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(2),
+            playbackCount = 1,
+            title = "Elephants Dream",
+            duration = TimeUnit.MINUTES.toMillis(10) + TimeUnit.SECONDS.toMillis(53),
+            artist = "Blender Foundation",
+            thumbnailPath = null
+        ),
+        PlaybackHistory(
+            uri = "preview_uri_3".toUri(),
+            lastTimestamp = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30),
+            playbackCount = 5,
+            title = null, // Test title fallback to URI's last path segment
+            duration = 0,  // Test blank duration
+            artist = "Another Artist",
+            thumbnailPath = null
+        )
+    )
+    val list = remember { MutableStateFlow(previewHistoryItems) }
 
     CMediaPlayerTheme {
         // MainScreen now expects onHistoryItemClick

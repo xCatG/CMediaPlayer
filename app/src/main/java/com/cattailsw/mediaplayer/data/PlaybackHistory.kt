@@ -13,5 +13,15 @@ data class PlaybackHistory(
     @ColumnInfo(name = "lastTimestamp")
     val lastTimestamp: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "playbackCount")
-    val playbackCount:Int = 0
+    val playbackCount:Int = 0,
+    @ColumnInfo(name = "title")
+    val title: String? = null,
+    @ColumnInfo(name = "duration")
+    val duration: Long? = null,
+    @ColumnInfo(name = "artist")
+    val artist: String? = null,
+    @ColumnInfo(name = "artwork_uri")
+    val artworkUri: String? = null,
+    @ColumnInfo(name = "thumbnail_path")
+    val thumbnailPath: String? = null
 )

@@ -9,13 +9,16 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.common.MediaMetadata // Added MediaMetadata import
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.util.EventLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow // Added asStateFlow import
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
+import androidx.core.net.toUri // Added toUri import
 
 sealed class PlayerState {
     object Idle: PlayerState()
@@ -32,6 +35,9 @@ class ExoHolderVM(
     private val _exoPlayerState = MutableStateFlow<PlayerState>(PlayerState.Idle)
     val playerState: StateFlow<PlayerState>
         get() = _exoPlayerState
+
+    private val _mediaMetadataFlow = MutableStateFlow<Pair<Uri, MediaMetadata>?>(null)
+    val mediaMetadataFlow: StateFlow<Pair<Uri, MediaMetadata>?> = _mediaMetadataFlow.asStateFlow()
 
     val player: Player
         get() = requireNotNull(_exoPlayer)
@@ -57,6 +63,17 @@ class ExoHolderVM(
                         }
                     }
                 }
+
+                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                    viewModelScope.launch {
+                        currentMediaItem?.mediaId?.let { mediaIdString ->
+                            // Prefer requestMetadata.mediaUri if available and non-null, otherwise use mediaId
+                            val uriToEmit = currentMediaItem?.requestMetadata?.mediaUri ?: mediaIdString.toUri()
+                            _mediaMetadataFlow.emit(Pair(uriToEmit, mediaMetadata))
+                            Log.d("ExoHolderVM", "Emitted metadata for URI: $uriToEmit")
+                        }
+                    }
+                }
             })
             _exoPlayer = player
         }
@@ -64,22 +81,28 @@ class ExoHolderVM(
 
     // we currently only support opening one item
     fun replaceItem(uri: Uri, mime:String? = null) {
-        val builder = MediaItem.Builder().setUri(uri)
+        val builder = MediaItem.Builder().setUri(uri).setMediaId(uri.toString()) // Set mediaId for later retrieval
         if (mime != null) {
             builder.setMimeType(mime)
         }
 
         val mediaItem = builder.build()
-        if (currentMediaItem != mediaItem) {
-
+        // It's important to also check mediaId if URI is the same,
+        // as MediaItem includes more than just URI (e.g., custom tags, drm config)
+        // For this app, URI is the primary identifier.
+        if (currentMediaItem?.requestMetadata?.mediaUri != uri) {
             _exoPlayer?.let { player ->
                 player.clearMediaItems()
                 player.addMediaItem(mediaItem)
                 player.prepare()
+                // After prepare, metadata might be available if it's part of the media stream
+                // or if ExoPlayer could infer it quickly.
+                // Emitting here could be an option if onMediaMetadataChanged is not always timely.
+                // However, onMediaMetadataChanged is the more standard callback.
             }
             currentMediaItem = mediaItem
         } else {
-            Log.d("ExoHolderVM", "got the same media item, ignoring replace call")
+            Log.d("ExoHolderVM", "got the same media item URI, ignoring replace call")
         }
     }
 
