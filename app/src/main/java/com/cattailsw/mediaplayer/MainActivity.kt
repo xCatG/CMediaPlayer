@@ -25,7 +25,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavDeepLink
 import androidx.navigation.compose.rememberNavController
 import com.cattailsw.mediaplayer.ui.theme.CMediaPlayerTheme
 import kotlinx.coroutines.flow.collectLatest
@@ -42,9 +41,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         exoHolder.initPlayer(applicationContext)
-        val deepLink: NavDeepLink = NavDeepLink.Builder().setAction(ACTION_VIEW)
-            .setMimeType("video/*")
-            .build()
 
         lifecycleScope.launch {
             // keep screen on when player is in play state.
@@ -67,15 +63,15 @@ class MainActivity : ComponentActivity() {
             // to SAF document opening?
             val pickMedia = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.PickVisualMedia(),
-                onResult = { uri ->
-                    viewModel.handleResult(uri)
+                onResult = {
+                    viewModel.handleResult(it)
                 }
             )
 
             val navController = rememberNavController()
 
             MainNavGraph(
-                exoHolder = exoHolder, extDeepLink = deepLink, navController = navController,
+                exoHolder = exoHolder, navController = navController,
                 mainOpenAction = { viewModel.openLocalFileBrowser() },
                 exoScreenBackAction = {
                     exoHolder.stop()

@@ -7,11 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import androidx.navigation.NavController.Companion.KEY_DEEP_LINK_INTENT
-import androidx.navigation.NavDeepLink
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 
 object PlayerDestinations {
     const val HOME = "main"
@@ -27,7 +27,6 @@ class MainNavigationAction(navController: NavController) {
 @Composable
 fun MainNavGraph(
     exoHolder: ExoHolderVM,
-    extDeepLink: NavDeepLink,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     startDestination: String = PlayerDestinations.HOME,
@@ -45,7 +44,19 @@ fun MainNavGraph(
                 launch = {navController.navigate(PlayerDestinations.DBG_MEDIA)}
             )
         }
-        composable(route = PlayerDestinations.EXT_MEDIA, deepLinks = listOf(extDeepLink)) {
+        composable(
+            route = PlayerDestinations.EXT_MEDIA,
+            deepLinks = listOf(
+                navDeepLink {
+                    action = Intent.ACTION_VIEW
+                    mimeType = "video/*"
+                },
+                navDeepLink {
+                    action = Intent.ACTION_VIEW
+                    mimeType = "audio/*"
+                }
+            )
+        ) {
             // all these parsing here doesn't feel right, figure out how to refactor this
             val origIntent : Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)

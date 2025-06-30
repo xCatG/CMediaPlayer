@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.cattailsw.mediaplayer"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.cattailsw.mediaplayer"
         minSdk = 28
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
