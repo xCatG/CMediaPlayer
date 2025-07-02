@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
+import androidx.core.net.toUri
 
 object PlayerDestinations {
     const val HOME = "main"
@@ -61,7 +62,8 @@ fun MainNavGraph(
             val origIntent : Intent? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT, Intent::class.java)
             } else {
-                it.arguments?.getParcelable<Intent>(KEY_DEEP_LINK_INTENT)
+                @Suppress("DEPRECATION")
+                it.arguments?.getParcelable(KEY_DEEP_LINK_INTENT)
             }
 
             if (origIntent != null) {
@@ -74,7 +76,7 @@ fun MainNavGraph(
             ExoPlayerScreen(player = exoHolder.player, onBack = exoScreenBackAction)
         }
         composable(route = PlayerDestinations.DBG_MEDIA) {
-            val dataUri = Uri.parse("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4")
+            val dataUri = "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4".toUri()
             exoHolder.replaceItem(dataUri)
             ExoPlayerScreen(
                 player = exoHolder.player,
